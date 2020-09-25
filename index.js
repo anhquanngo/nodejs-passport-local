@@ -3,8 +3,11 @@ const Passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy
 const session = require('express-session')
 const express = require('express');
+const passportFb = require('passport-facebook').Strategy
+const db = require('./db.js')
 const app = express()
-const fs = require('fs')
+const fs = require('fs');
+const passport = require('passport');
 
 app.set('views', './views');
 app.set('view engine', 'ejs')
@@ -38,6 +41,34 @@ app.get('/private', (req, res) => {
 
 app.get('/loginOK', (req, res) => res.send('ban da dang nhap thanh cong'))
 
+//passportFB
+app.get('/auth/fb', passport.authenticate('facebook'))
+app.get('/auth/fb/cb', passport.authenticate('facebook',
+    { failureRedirect: '/', successRedirect: '/loginOK' }
+))
+
+passport.use(new passportFb(
+    {
+        clientID: "704877580102851",
+        clientSecret: "be54ce3bd657ed84acfa2d5d3bfaaf84",
+        callbackURL: "http://localhost:3000/auth/fb/cb"
+    },
+    (accessToken, refreshToken, profile, done) => {
+        console.log('profile' + profile);
+    }
+))
+
+passport.serializeUser((user, done) => {
+    done(null, user.id)
+})
+
+passport.deserializeUser((id, done) => {
+    db.findOne({ id }, (err, user) => {
+        done(null, user)
+    })
+})
+
+
 Passport.use(new LocalStrategy(
     (username, password, done) => {
         fs.readFile('./userDB.json', (err, data) => {
@@ -68,5 +99,5 @@ Passport.deserializeUser((name, done) => {
     })
 })
 
-const port = 3333
+const port = 3000
 app.listen(port, () => console.log(`Server is running port ${port}`))
